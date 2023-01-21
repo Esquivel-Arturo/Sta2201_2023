@@ -97,6 +97,11 @@ $$
 
 Solving the system yields that $\alpha = 1/\sigma^2$ and $\beta = \sigma^2$.
 
+```{r data}
+# Load data
+archival_data <- read.csv("https://raw.githubusercontent.com/Esquivel-Arturo/Sta2201_2023/main/Assignments/Archival-study.csv")
+```
+
 ```{r}
 #| message: false
 #| warning: false
