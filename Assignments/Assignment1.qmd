@@ -19,6 +19,7 @@ library(visdat) # EDA
 library(janitor)
 library(lubridate)
 library(ggrepel)
+library(MASS)
 ```
 
 # Overdispersion
@@ -97,10 +98,128 @@ $$
 
 Solving the system yields that $\alpha = 1/\sigma^2$ and $\beta = \sigma^2$.
 
+# Hurricanes
+
+a)
+
+TODO: Comment graphs 
+
 ```{r data}
 # Load data
 archival_data <- read.csv("https://raw.githubusercontent.com/Esquivel-Arturo/Sta2201_2023/main/Assignments/Archival-study.csv")
+archival_data <- archival_data[1:92, ]
 ```
+
+```{r}
+archival_data |> 
+  ggplot(aes(MasFem, alldeaths)) + 
+  geom_point() + 
+  geom_smooth() +
+  labs(title = "Number of Deaths vs Feminity of the Hurricane Name",
+       x = "MFI",
+       y = "Number of Deaths") + 
+  theme_bw(base_size = 14)
+```
+
+```{r}
+archival_data |> 
+  ggplot(aes(MinPressure_before, alldeaths)) + 
+  geom_point() + 
+  geom_smooth() +
+  labs(title = "Number of Deaths vs Minimum Pressure",
+       x = "Minimum Pressure",
+       y = "Number of Deaths") + 
+  theme_bw(base_size = 14)
+```
+
+```{r}
+archival_data |> 
+  ggplot(aes(NDAM, alldeaths)) + 
+  geom_point() + 
+  geom_smooth() +
+  labs(title = "Number of Deaths vs Damage Caused",
+       x = "Normalized Damage (in millions $)",
+       y = "Number of Deaths") + 
+  theme_bw(base_size = 14)
+```
+
+b)
+
+```{r}
+fit <- glm(alldeaths ~ MasFem, family = poisson, data = archival_data)
+summary(fit)
+```
+
+```{r}
+plot(fit$fitted.values, rstandard(fit))
+sum(rstandard(fit)^2)/90
+1- pchisq(sum(rstandard(fit)^2), 90)
+```
+
+```{r}
+quasi_fit <- glm(alldeaths ~ MasFem, family = quasipoisson, data = archival_data)
+summary(quasi_fit)
+```
+
+c)
+
+```{r}
+scaled_data <- archival_data
+scaled_data$MinPressure_before <- scale(scaled_data$MinPressure_before)
+scaled_data$NDAM <- scale(scaled_data$NDAM)
+scaled_data$MasFem <- scale(scaled_data$MasFem)
+model_4 <- glm.nb(alldeaths ~ MinPressure_before + NDAM + MasFem +
+                MasFem*MinPressure_before + MasFem*NDAM, data = scaled_data)
+summary(model_4)
+```
+
+```{r}
+pred<-predict(fit, 
+        newdata = data.frame(
+          pregnant = 1,
+          glucose = 99,
+          diastolic = 64,
+          bmi =27,
+          diabetes=0.25,
+          age=25
+          ),
+        se = T )
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ```{r}
 #| message: false
