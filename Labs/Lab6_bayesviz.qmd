@@ -91,15 +91,6 @@ ggplot(ds, aes(sex, birthweight, color = sex)) +
   scale_color_discrete( labels = c('F', 'M'))
 ```
 
-```{r}
-ds |> 
-  ggplot(aes(mager, log(birthweight), color = sex)) + 
-  geom_point() + 
-  geom_smooth(method = "lm") + 
-  scale_color_manual(name = "Premature", values = c("M" = "darkblue", "F" = "red"))  + 
-  theme_bw(base_size = 13) + 
-  ggtitle("Birth Weight vs Gestational Age (log-scale)")
-```
 
 # The model
 
@@ -144,8 +135,50 @@ Let's check to see what the resulting distribution of birth weights look like gi
 For Model 1, simulate values of $\beta$s and $\sigma$ based on the priors above. Do 1000 simulations. Use these values to simulate (log) birth weights from the likelihood specified in Model 1, based on the set of observed gestational weights. **Remember the gestational weights should be centered and standardized**. 
 
 - Plot the resulting distribution of simulated (log) birth weights. 
+```{r}
+l_norm_gest <- (log(ds$gest)-mean(log(ds$gest)))/sd(log(ds$gest))
+
+n <- 1000
+m <- length(l_norm_gest)
+set.seed(29)
+sigma <- abs(rnorm(n, 0, 1))
+beta_0 <- rnorm(n, 0, 1)
+beta_1 <- rnorm(n, 0, 1)
+
+l_bw <- matrix(0, n, m)
+for(i in 1:n){
+  l_bw[i, ] <- rnorm(m, rep(beta_0[i], m) + beta_1[i]*l_norm_gest, rep(sigma[i], m))
+}
+
+data.frame(l_bw) |> 
+  pivot_longer(cols = everything()) |>
+  ggplot(aes(value)) +
+  geom_histogram(aes(y = after_stat(density))) + 
+  theme_bw(base_size = 13) +
+  xlim(c(-10, 10)) + 
+  labs(title = "Simulated Distribution",
+       x = "Birth Weight (log-scale)", y = "Density") 
+```
+
+
+
 - Plot ten simulations of (log) birthweights against gestational age. 
 
+```{r}
+ten_sim <- data.frame(l_bw[1:10, ]) |> 
+  pivot_longer(cols = everything())
+
+cbind(ten_sim, rep(log(ds$gest), 10)) |> 
+  ggplot(aes(`rep(log(ds$gest), 10)`, value)) + 
+  geom_point() + 
+  geom_smooth() +
+  labs(title = "Simulated Birth Weights vs Gestational Age",
+       x = "Gestational Age (log)",
+       y = "Birth Weights (log)") + 
+  theme_bw(base_size = 14)
+```
+
+With such vague priors, it is clear that the relationship between birth weight and gestational age is lost due to the variance of the distrbution. 
 
 # Run the model
 
