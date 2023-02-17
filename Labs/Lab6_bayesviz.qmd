@@ -178,7 +178,7 @@ cbind(ten_sim, rep(log(ds$gest), 10)) |>
   theme_bw(base_size = 14)
 ```
 
-With such vague priors, it is clear that the relationship between birth weight and gestational age is lost due to the variance of the distrbution. 
+With such vague priors, it is clear that the relationship between birth weight and gestational age is lost due to the variance of the distribution. Hopefully, that will be corrected in the posteriors. 
 
 # Run the model
 
@@ -200,7 +200,7 @@ Now fit the model
 
 ```{r}
 mod1 <- stan(data = stan_data, 
-             file = here("code/models/simple_weight.stan"),
+             file = here("simple_weight.stan"),
              iter = 500,
              seed = 243)
 ```
@@ -211,22 +211,58 @@ summary(mod1)$summary[c("beta[1]", "beta[2]", "sigma"),]
 
 ## Question 3
 
-Based on model 3, give an estimate of the expected birthweight of a baby who was born at a gestational age of 37 weeks. 
+Based on model 1, give an estimate of the expected birthweight of a baby who was born at a gestational age of 37 weeks. 
+
+```{r}
+
+val <- (log(37) - mean(log(ds$gest)))/sd(log(ds$gest))
+
+pos_estimates <- mod1 |> 
+  gather_draws(beta[condition]) |> 
+  group_by(.draw) |>
+  mutate(.value = ifelse(condition==2, .value*val,  .value)) |> 
+  summarise(est = sum(.value))
+
+estimate <- exp(mean(pos_estimates$est))
+
+```
+
+The posterior (mean) estimate for the expected birth weight of a baby born after 37 weeks of gestation is `r round(estimate, 2)` kg.
 
 ## Question 4
 
 Write a stan model to run Model 2, and run it. 
+
+```{r}
+
+ds$preterm <- ifelse(ds$preterm=="Y", 1, 0)
+stan_data <- list(N = nrow(ds),
+                  log_weight = ds$log_weight,
+                  log_gest = ds$log_gest_c,
+                  preterm = ds$preterm)
+
+mod2 <- stan(data = stan_data, 
+             file = here("simple_weight2.stan"),
+             iter = 500,
+             seed = 29)
+```
+
+The summary of model 2 is shown below.
+
+```{r}
+summary(mod2)[["summary"]][c(paste0("beta[",1:4, "]"), "sigma"),]
+```
 
 ## Question 5
 
 For reference I have uploaded some model 2 results. Check your results are similar. 
 
 ```{r}
-load(here("output", "mod2.Rda"))
+load(here("mod2.Rda"))
 summary(mod2)$summary[c(paste0("beta[", 1:4, "]"), "sigma"),]
 ```
 
-
+The results coincide with the summary provided. 
 
 
 # PPCs
@@ -238,7 +274,6 @@ set.seed(1856)
 y <- ds$log_weight
 yrep1 <- extract(mod1)[["log_weight_rep"]]
 yrep2 <- extract(mod2)[["log_weight_rep"]] 
-dim(yrep1)
 samp100 <- sample(nrow(yrep1), 100)
 ppc_dens_overlay(y, yrep1[samp100, ])  + ggtitle("distribution of observed versus predicted birthweights")
 ```
