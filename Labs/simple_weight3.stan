@@ -4,18 +4,19 @@ data {
   vector[N] log_gest;    // 
   vector[N] log_weight;     // 
   vector[N] preterm;     // 
+  vector[N] sex;     // 
 }
 transformed data {
   vector[N] inter;           
-  inter = log_gest .* preterm;
+  inter     = log_gest .* preterm;
 }
 parameters {
-  vector[4] beta;           // coefs
+  vector[5] beta;           // coefs
   real<lower=0> sigma;  // error sd for Gaussian likelihood
 }
 model {
   // Log-likelihood
-  target += normal_lpdf(log_weight | beta[1] + beta[2] * log_gest + beta[3] * preterm + beta[4] * inter, sigma);
+  target += normal_lpdf(log_weight | beta[1] + beta[2]*log_gest + beta[3]*preterm + beta[4]*inter + beta[5]*sex, sigma);
 
   // Log-priors
   target += normal_lpdf(sigma | 0, 1)
@@ -26,7 +27,7 @@ generated quantities {
   vector[N] log_weight_rep; // replications from posterior predictive dist
 
   for (n in 1:N) {
-    real log_weight_hat_n = beta[1] + beta[2] * log_gest[n] + beta[3] * preterm[n] + beta[4] * inter[n];
+    real log_weight_hat_n = beta[1] + beta[2]*log_gest[n] + beta[3]*preterm[n] + beta[4]*inter[n] + beta[5]*sex[n];
     log_lik[n] = normal_lpdf(log_weight[n] | log_weight_hat_n, sigma);
     log_weight_rep[n] = normal_rng(log_weight_hat_n, sigma);
   }
